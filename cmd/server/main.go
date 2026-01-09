@@ -7,12 +7,21 @@ import (
 	"net/http"
 	"time"
 	"github.com/golang-jwt/jwt/v5"
-	_ "github.com/mattn/go-sqlite3" // Import the driver anonymously
+	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
+	"os"
 )
 
-// Will use environment variable in production
 var jwtKey = []byte("my_secret_key_cvwo_2026")
+
+func init() {
+    // Try to get the secret from the environment variables
+    secret := os.Getenv("JWT_SECRET")
+    if secret != "" {
+        // If found, use the secure key instead of the hardcoded one
+        jwtKey = []byte(secret)
+    }
+}
 
 // Structure of the token
 type Claims struct {
@@ -104,6 +113,7 @@ type Comment struct {
 	PostID int    `json:"post_id"` // Foreign Key: links to a Post
 	Body   string `json:"body"`
 	Author string `json:"author"`
+	IsPinned bool   `json:"is_pinned"`
 }
 
 // --- CRUD OPERATIONS ---
@@ -453,7 +463,19 @@ func getComments(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 
 	postID := r.URL.Query().Get("post_id")
-	rows, err := db.Query("SELECT id, post_id, body, author FROM comments WHERE post_id = ?", postID)
+
+	query := `
+		SELECT 
+			id, 
+			body, 
+			author,
+			is_pinned
+		FROM comments
+		WHERE post_id = ?
+		ORDER BY is_pinned DESC, id ASC -- Pinned first, then newest
+	`
+
+	rows, err := db.Query(query, postID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -463,7 +485,7 @@ func getComments(w http.ResponseWriter, r *http.Request) {
 	var filteredComments []Comment
 	for rows.Next() {
 		var c Comment
-		if err := rows.Scan(&c.ID, &c.PostID, &c.Body, &c.Author); err != nil {
+		if err := rows.Scan(&c.ID, &c.Body, &c.Author, &c.IsPinned); err != nil {
 			continue
 		}
 		filteredComments = append(filteredComments, c)
@@ -610,6 +632,59 @@ func deleteComment(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
+func togglePin(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	if r.Method == "OPTIONS" {
+		return
+	}
+
+	// Authenticate User
+
+	c, err := r.Cookie("token")
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	claims := &Claims{}
+	jwt.ParseWithClaims(c.Value, claims, func(token *jwt.Token) (interface{}, error) { return jwtKey, nil })
+	currentUser := claims.Username
+
+	// Parse Request
+    var req struct {
+        CommentID int `json:"comment_id"`
+    }
+    json.NewDecoder(r.Body).Decode(&req)
+
+	// Security Check: Is the currentUser the owner of the POST?
+    // Look up the Post Author based on the Comment ID
+    var postAuthor string
+    err = db.QueryRow(`
+        SELECT p.author 
+        FROM posts p 
+        JOIN comments c ON p.id = c.post_id 
+        WHERE c.id = ?`, req.CommentID).Scan(&postAuthor)
+
+    if err != nil {
+        http.Error(w, "Comment not found", http.StatusNotFound)
+        return
+    }
+
+    if currentUser != postAuthor {
+        http.Error(w, "Only the post author can pin comments", http.StatusForbidden)
+        return
+    }
+
+	// Toggle the Pin (True -> False, False -> True)
+    _, err = db.Exec("UPDATE comments SET is_pinned = NOT is_pinned WHERE id = ?", req.CommentID)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+}
+
 // --- AUTHENTICATION ---
 
 func register(w http.ResponseWriter, r *http.Request) {
@@ -698,7 +773,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create the JWT Token
+	// Create the JWT
 	expirationTime := time.Now().Add(24 * time.Hour) // Token valid for 1 day
 	claims := &Claims{
 		Username: u.Username,
@@ -772,7 +847,12 @@ func logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000") // Must match React URL
+	allowedOrigin := os.Getenv("FRONTEND_URL")
+    if allowedOrigin == "" {
+        allowedOrigin = "http://localhost:3000" // Default for local development
+    }
+
+	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 	(*w).Header().Set("Access-Control-Allow-Credentials", "true") // REQUIRED for cookies
@@ -803,6 +883,7 @@ func main() {
 	http.HandleFunc("/comments/create", createComment)
 	http.HandleFunc("/comments/update", updateComment)
 	http.HandleFunc("/comments/delete", deleteComment)
+	http.HandleFunc("/comments/pin", togglePin)
 
     // Authentication
 	http.HandleFunc("/register", register)
