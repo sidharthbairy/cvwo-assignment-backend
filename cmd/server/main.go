@@ -739,9 +739,9 @@ func register(w http.ResponseWriter, r *http.Request) {
         Value:    tokenString,
         Expires:  expirationTime,
         HttpOnly: true,
-        Secure:   false, 
+        Secure:   true, 
         Path:     "/",
-        SameSite: http.SameSiteLaxMode,
+        SameSite: http.SameSiteNoneMode,
     })
 
     // Return Success
@@ -793,10 +793,10 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Name:     "token",
 		Value:    tokenString,
 		Expires:  expirationTime,
-		HttpOnly: true,  // JavaScript CANNOT access this
-		Secure:   false, // Set to true if using HTTPS
-		Path:     "/",   // Available for all routes
-		SameSite: http.SameSiteLaxMode,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		SameSite: http.SameSiteNoneMode,
 	})
 
 	// Return success
