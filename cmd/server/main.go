@@ -165,7 +165,7 @@ func getTopic(w http.ResponseWriter, r *http.Request) {
 // Create Topic (POST)
 func createTopic(w http.ResponseWriter, r *http.Request) {
     // Setup CORS
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" { return }
 
 	// Extract user from cookie
@@ -197,7 +197,7 @@ func createTopic(w http.ResponseWriter, r *http.Request) {
 
 // Update Topic (PUT) -> Rename a topic
 func updateTopic(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -240,7 +240,7 @@ func updateTopic(w http.ResponseWriter, r *http.Request) {
 
 // Delete Topic (DELETE)
 func deleteTopic(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -343,7 +343,7 @@ func getPost(w http.ResponseWriter, r *http.Request) {
 // Create Post (POST)
 func createPost(w http.ResponseWriter, r *http.Request) {
 	
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -375,7 +375,7 @@ func createPost(w http.ResponseWriter, r *http.Request) {
 
 // Update Post (PUT)
 func updatePost(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -418,7 +418,7 @@ func updatePost(w http.ResponseWriter, r *http.Request) {
 
 // Delete Post (DELETE)
 func deletePost(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -500,7 +500,7 @@ func getComments(w http.ResponseWriter, r *http.Request) {
 
 // Create Comment (POST)
 func createComment(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -543,7 +543,7 @@ func createComment(w http.ResponseWriter, r *http.Request) {
 
 // Update Comment (PUT)
 func updateComment(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -591,7 +591,7 @@ func updateComment(w http.ResponseWriter, r *http.Request) {
 
 // Delete Comment (DELETE)
 func deleteComment(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -633,7 +633,7 @@ func deleteComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func togglePin(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -688,7 +688,7 @@ func togglePin(w http.ResponseWriter, r *http.Request) {
 // --- AUTHENTICATION ---
 
 func register(w http.ResponseWriter, r *http.Request) {
-    enableCors(&w)
+    enableCors(&w, r)
     if r.Method == "OPTIONS" { return }
 
     var u struct {
@@ -750,7 +750,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w) 
+	enableCors(&w, r) 
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -804,7 +804,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 }
 
 func validateSession(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 
 	// Get the Cookie
 	c, err := r.Cookie("token")
@@ -834,7 +834,7 @@ func validateSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	enableCors(&w, r)
 
 	// Overwrite the cookie with an expired one
 	http.SetCookie(w, &http.Cookie{
@@ -846,16 +846,38 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func enableCors(w *http.ResponseWriter) {
-	allowedOrigin := os.Getenv("FRONTEND_URL")
-    if allowedOrigin == "" {
-        allowedOrigin = "http://localhost:3000" // Default for local development
+// func enableCors(w *http.ResponseWriter) {
+// 	allowedOrigin := os.Getenv("FRONTEND_URL")
+//     if allowedOrigin == "" {
+//         allowedOrigin = "http://localhost:3000" // Default for local development
+//     }
+
+// 	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+// 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+// 	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+// 	(*w).Header().Set("Access-Control-Allow-Credentials", "true") // REQUIRED for cookies
+// }
+
+// NEW enableCors: Takes the Request 'r' to see where it came from
+func enableCors(w *http.ResponseWriter, r *http.Request) {
+    origin := r.Header.Get("Origin")
+
+    // The Whitelist
+    allowedOrigins := map[string]bool{
+        "http://localhost:3000":          true,
+        "https://cvwo-forum.netlify.app": true, // <--- VERIFY THIS SPELLING IS CORRECT
     }
 
-	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-	(*w).Header().Set("Access-Control-Allow-Credentials", "true") // REQUIRED for cookies
+    if allowedOrigins[origin] {
+        (*w).Header().Set("Access-Control-Allow-Origin", origin)
+    } else {
+        // Fallback: If unknown, just let localhost in (useful for testing)
+        (*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+    }
+
+    (*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+    (*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+    (*w).Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
 // --- MAIN SETUP ---
