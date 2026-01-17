@@ -861,6 +861,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 // NEW enableCors: Takes the Request 'r' to see where it came from
 func enableCors(w *http.ResponseWriter, r *http.Request) {
     origin := r.Header.Get("Origin")
+	fmt.Println("origin: ", origin)
 
     // The Whitelist
     allowedOrigins := map[string]bool{
@@ -869,7 +870,7 @@ func enableCors(w *http.ResponseWriter, r *http.Request) {
     }
 
     if allowedOrigins[origin] {
-        (*w).Header().Set("Access-Control-Allow-Origin", origin)
+    	(*w).Header().Set("Access-Control-Allow-Origin", origin)
     } else {
         // Fallback: If unknown, just let localhost in (useful for testing)
         (*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
