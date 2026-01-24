@@ -120,8 +120,7 @@ type Comment struct {
 
 // Get all Topics (GET)
 func getTopics(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	w.Header().Set("Content-Type", "application/json")
+	enableCors(&w)
 
 	rows, err := db.Query("SELECT id, title, author FROM topics")
 	if err != nil {
@@ -145,8 +144,7 @@ func getTopics(w http.ResponseWriter, r *http.Request) {
 
 // Get a specific Topic by ID (GET)
 func getTopic(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	w.Header().Set("Content-Type", "application/json")
+	enableCors(&w)
 
 	idStr := r.URL.Query().Get("id")
 
@@ -293,8 +291,7 @@ func deleteTopic(w http.ResponseWriter, r *http.Request) {
 
 // Get Posts by Topic (for the Topic View)
 func getPostsByTopic(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	enableCors(&w)
 
 	topicID := r.URL.Query().Get("topic_id")
 	rows, err := db.Query("SELECT id, topic_id, title, body, author FROM posts WHERE topic_id = ?", topicID)
@@ -318,8 +315,7 @@ func getPostsByTopic(w http.ResponseWriter, r *http.Request) {
 
 // Get a specific Post by ID
 func getPost(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	w.Header().Set("Content-Type", "application/json")
+	enableCors(&w)
 
 	idStr := r.URL.Query().Get("id")
 
@@ -459,8 +455,7 @@ func deletePost(w http.ResponseWriter, r *http.Request) {
 
 // Get Comments for a specific Post (GET)
 func getComments(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	enableCors(&w)
 
 	postID := r.URL.Query().Get("post_id")
 
@@ -847,11 +842,10 @@ func logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func enableCors(w *http.ResponseWriter) {
-	// 1. Start with the Localhost default
+	// Start with the Localhost default
     allowedOrigin := "http://localhost:3000"
 
-    // 2. Check if we are running on Render
-    // Render AUTOMATICALLY sets this variable to "true"
+    // Check if we are running on Render
     if os.Getenv("RENDER") != "" {
         allowedOrigin = "https://cvwo-forum.netlify.app"
     }
