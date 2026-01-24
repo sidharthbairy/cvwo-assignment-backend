@@ -9,11 +9,15 @@
 * **Docker** (Optional, for containerized run)
 
 ### 1. Clone the repository
-### 2. Run the server
+### 2. Install the dependencies
+```bash
+go mod tidy
+```
+### 3. Run the server
 ```bash
 go run cmd/server/main.go
 ```
-### 3. Go to the frontend repository and follow the setup instructions on the README file
+### 4. Go to the frontend repository and follow the setup instructions on the README file
 
 ### Alternatively, if you prefer to run the entire stack in containers without installing Go/Node locally:
 ```bash
