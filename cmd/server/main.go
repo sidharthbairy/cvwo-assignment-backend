@@ -81,7 +81,8 @@ func initDB() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             post_id INTEGER,
             body TEXT,
-            author TEXT
+            author TEXT,
+			is_pinned BOOLEAN DEFAULT FALSE
         )
     `)
 	if err != nil {
