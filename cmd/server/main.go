@@ -847,9 +847,13 @@ func logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func enableCors(w *http.ResponseWriter) {
-	allowedOrigin := os.Getenv("FRONTEND_URL")
-    if allowedOrigin == "" {
-        allowedOrigin = "http://localhost:3000" // Default for local development
+	// 1. Start with the Localhost default
+    allowedOrigin := "http://localhost:3000"
+
+    // 2. Check if we are running on Render
+    // Render AUTOMATICALLY sets this variable to "true"
+    if os.Getenv("RENDER") != "" {
+        allowedOrigin = "https://cvwo-forum.netlify.app"
     }
 
 	(*w).Header().Set("Access-Control-Allow-Origin", allowedOrigin)
