@@ -24,6 +24,7 @@ go run cmd/server/main.go
 # Add both frontend and backend directories to a folder, and from the root directory, run
 docker compose up --build
 ```
+**Deployed version:** https://cvwo-forum-backend.onrender.com
 
 ## 🤖 AI Usage Declaration
 ### In accordance with the CVWO policy, I utilized AI tools (specifically Gemini 3 Pro) strictly as a research assistant and debugger.
