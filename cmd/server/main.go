@@ -857,30 +857,6 @@ func enableCors(w *http.ResponseWriter) {
 	(*w).Header().Set("Access-Control-Allow-Credentials", "true") // REQUIRED for cookies
 }
 
-// // NEW enableCors: Takes the Request 'r' to see where it came from
-// func enableCors(w *http.ResponseWriter, r *http.Request) {
-//     origin := r.Header.Get("Origin")
-// 	fmt.Println("origin: ", origin)
-
-//     // The Whitelist
-//     allowedOrigins := map[string]bool{
-//         "http://localhost:3000":          true,
-//         "https://cvwo-forum.netlify.app": true, // <--- VERIFY THIS SPELLING IS CORRECT
-//     }
-
-//     if allowedOrigins[origin] {
-//     	(*w).Header().Set("Access-Control-Allow-Origin", origin) // COULD BE RENDER ISSUE!!!!!!
-// 	}
-//     // } else {
-//     //     // Fallback: If unknown, just let localhost in (useful for testing)
-//     //     (*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-//     // }
-
-//     (*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-//     (*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-//     (*w).Header().Set("Access-Control-Allow-Credentials", "true")
-// }
-
 // --- MAIN SETUP ---
 
 func main() {
